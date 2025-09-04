@@ -1797,8 +1797,8 @@ lemma line_G_colorable {V : Type} [Fintype V] [DecidableEq V]
   have h: (prop_to_use (G.edgeSet).toFinset) := by apply line_G_colorable_induced
   simp [eg, prop_to_use] at h
   have h₁ : G = (eg G.edgeSet.toFinset) := by simp [eg]
-  have h₂ : (lineGraph G) ↪g (lineGraph (eg G.edgeSet.toFinset)) := line_embed h₁
-  apply Colorable.of_embedding h₂
+  have h₂ : (lineGraph G) →g (lineGraph (eg G.edgeSet.toFinset)) := line_embed h₁
+  apply SimpleGraph.Colorable.of_hom h₂
   exact h
 
 
