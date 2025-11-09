@@ -2,6 +2,7 @@
 
 import Mathlib.Combinatorics.SimpleGraph.Basic
 import Mathlib.Combinatorics.SimpleGraph.Maps
+import Mathlib.Combinatorics.SimpleGraph.DegreeSum
 import Mathlib.Tactic
 import Mathlib.Data.Fintype.Basic
 
@@ -15,10 +16,15 @@ def free (G : SimpleGraph V) (G' : SimpleGraph V') : Prop := ¬ contains G G'
 
 def triangle_free (G : SimpleGraph V) := free G (completeGraph (Fin 3))
 
--- theorem mantels_theorem_helper {htf: triangle_free G} : 4 * Finset.card (G.edgeSet.toFinset) ≤ (Fintype.card V)^2 := by sorry
 
--- have hhandshake : ∑ v, G.degree v = 2 * #G.edgeFinset := by
+-- #check sum_degrees_eq_twice_card_edges
+
+theorem mantels_theorem_helper {htf: triangle_free G} : 4 * Finset.card (G.edgeSet.toFinset) ≤ (Fintype.card V)^2 := by
+  have handshake : ∑ v, G.degree v = 2 * #G.edgeFinset := sum_degrees_eq_twice_card_edges G
+
+  sorry
   -- have h1 : ∑ v, G.degree v = 2 * #G.edgeFinset := sorry
+
     -- rw [SimpleGraph.sum_degrees_eq_twice_card_edges (decide G.Adj)]
 
 
