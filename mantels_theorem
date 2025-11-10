@@ -1,19 +1,15 @@
-import Mathlib.Combinatorics.SimpleGraph.Basic
-import Mathlib.Combinatorics.SimpleGraph.Maps
 import Mathlib.Combinatorics.SimpleGraph.DegreeSum
 import Mathlib.Tactic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Finset.Basic
 
 open SimpleGraph Finset
 
-variable {V V' : Type} (v : V) (G : SimpleGraph V)
+variable {V V' : Type} (G : SimpleGraph V) (G' : SimpleGraph V')
 
-def contains (G : SimpleGraph V) (G' : SimpleGraph V') : Prop := Nonempty ( G' ↪g G)
+def contains : Prop := Nonempty ( G' ↪g G )
 
-def free (G : SimpleGraph V) (G' : SimpleGraph V') : Prop := ¬ contains G G'
+def free : Prop := ¬ contains G G'
 
-def triangle_free (G : SimpleGraph V) := free G (completeGraph (Fin 3))
+def triangle_free := free G (completeGraph (Fin 3))
 
 lemma triangle_free_expand (htf: triangle_free G)
 : ∀ (x y z : V), G.Adj x y → G.Adj y z → G.Adj x z → False := by
@@ -41,7 +37,7 @@ lemma triangle_free_expand (htf: triangle_free G)
     <;> tauto
   contradiction
 
-variable [Fintype V] [DecidableRel G.Adj] [Fintype (G.neighborSet v)]
+variable [Fintype V] [DecidableRel G.Adj]
 
 lemma darts_count_p_1 : ∑ e:G.Dart, (G.degree e.fst + G.degree e.snd)
 = ∑ p : (Σ v, G.neighborFinset v), (G.degree p.1 + G.degree p.2) := by
