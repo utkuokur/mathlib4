@@ -1,14 +1,13 @@
---Written by Utku Okur
-
 import Mathlib.Combinatorics.SimpleGraph.Basic
 import Mathlib.Combinatorics.SimpleGraph.Maps
 import Mathlib.Combinatorics.SimpleGraph.DegreeSum
 import Mathlib.Tactic
 import Mathlib.Data.Fintype.Basic
+import Mathlib.Data.Finset.Basic
 
 open SimpleGraph Finset
 
-variable {V V' : Type} (G : SimpleGraph V) [Fintype V] [DecidableRel G.Adj]
+variable {V V' : Type} (v : V) (G : SimpleGraph V)
 
 def contains (G : SimpleGraph V) (G' : SimpleGraph V') : Prop := Nonempty ( G' ↪g G)
 
@@ -16,22 +15,153 @@ def free (G : SimpleGraph V) (G' : SimpleGraph V') : Prop := ¬ contains G G'
 
 def triangle_free (G : SimpleGraph V) := free G (completeGraph (Fin 3))
 
+lemma triangle_free_expand (htf: triangle_free G)
+: ∀ (x y z : V), G.Adj x y → G.Adj y z → G.Adj x z → False := by
 
--- #check sum_degrees_eq_twice_card_edges
+  intro x y z hxy hyz hxz
+  unfold triangle_free free contains at htf
 
-theorem mantels_theorem_helper {htf: triangle_free G} : 4 * Finset.card (G.edgeSet.toFinset) ≤ (Fintype.card V)^2 := by
-  have handshake : ∑ v, G.degree v = 2 * #G.edgeFinset := sum_degrees_eq_twice_card_edges G
+  have hxy' : x ≠ y := G.ne_of_adj hxy
+  have hyz' : y ≠ z := G.ne_of_adj  hyz
+  have hxz' : x ≠ z := G.ne_of_adj  hxz
 
-  sorry
-  -- have h1 : ∑ v, G.degree v = 2 * #G.edgeFinset := sorry
+  have h : Nonempty (completeGraph (Fin 3) ↪g G) := by
+    let f: Fin 3 ↪ V :=  ⟨ λ i => match i with
+        | 0 => x | 1 => y | 2 => z, by
+          intro i j
+          fin_cases i <;> fin_cases j
+          <;> simp
+          <;> tauto
+      ⟩
+    use f
+    intro i j
+    simp
+    fin_cases i <;> fin_cases j
+    <;> simp
+    <;> tauto
+  contradiction
 
-    -- rw [SimpleGraph.sum_degrees_eq_twice_card_edges (decide G.Adj)]
+variable [Fintype V] [DecidableRel G.Adj] [Fintype (G.neighborSet v)]
+
+lemma darts_count_p_1 : ∑ e:G.Dart, (G.degree e.fst + G.degree e.snd)
+= ∑ p : (Σ v, G.neighborFinset v), (G.degree p.1 + G.degree p.2) := by
+  let equiv : G.Dart ≃ Σ v : V, G.neighborFinset v := {
+      toFun := λ d => ⟨d.fst, d.snd, by simp ⟩
+      invFun := λ p => ⟨ ⟨ p.fst, p.snd ⟩ , by
+      have ⟨ _, d ⟩ := p.2
+      simp [neighborFinset] at d ⊢
+      exact d ⟩
+      left_inv := by intro d; simp
+      right_inv := by intro p; simp
+    }
+  apply Fintype.sum_equiv equiv
+  simp [equiv]
+
+lemma interchange_order :
+∑ p : (Σ v, G.neighborFinset v), G.degree p.2
+= ∑ p : (Σ v, G.neighborFinset v), G.degree p.1 := by
+let f: (Σ v, G.neighborFinset v)
+→ (Σ v, G.neighborFinset v) := λ p => ⟨p.snd, p.fst, by
+simp
+have ⟨ c, d ⟩ := p.2
+simp [neighborFinset] at d ⊢
+exact d.symm ⟩
+let equiv :  (Σ v, G.neighborFinset v) ≃ (Σ v, G.neighborFinset v) := {
+      toFun := f
+      invFun := f
+      left_inv := by intro p ; simp [f]
+      right_inv := by intro p ; simp [f]
+    }
+apply Fintype.sum_equiv equiv
+simp [equiv, f]
+
+lemma single_double_sum : ∑ p : (Σ v, G.neighborFinset v), (G.degree p.1)
+= ∑ v:V, ∑ _ :G.neighborFinset v, (G.degree v) := by
+rw [Finset.sum_sigma', <-Finset.univ_sigma_univ]
+
+lemma darts_count_p_2
+: ∑ p : (Σ v, G.neighborFinset v), (G.degree p.1 + G.degree p.2)
+= 2 * ∑ v:V, (G.degree v)^2
+:= by
+simp_rw [Finset.sum_add_distrib, interchange_order]
+ring_nf
+simp [single_double_sum]
+rw [<-(Finset.sum_congr rfl)]
+intro _ _
+linarith
+
+variable [DecidableEq V]
+
+lemma bound_degree_sum (htf: triangle_free G) : ∀ (x y : V), G.Adj x y → G.degree x + G.degree y ≤ (Fintype.card V) := by
+  have h_expand := triangle_free_expand G htf
+  intro x y hxy
+  have h2 : ∀ (z : V), z ≠ x → z ≠ y → ¬(G.Adj x z ∧ G.Adj y z) := by
+    intro z hz1 hz2 h3
+    exact h_expand x y z hxy h3.2 h3.1
+
+  have h5 : #(G.neighborFinset x ∪ G.neighborFinset y) =
+    #(G.neighborFinset x) + #(G.neighborFinset y) - #(G.neighborFinset x ∩ G.neighborFinset y) :=
+    Finset.card_union (G.neighborFinset x) (G.neighborFinset y)
+
+  have h_empty : G.neighborFinset x ∩ G.neighborFinset y = ∅ := by
+    ext z
+    simp
+    intro hzx hzy
+    have h_triangle := h_expand x y z hxy hzy hzx
+    contradiction
+
+  simp [h_empty] at h5
+  rw [<-h5]
+  apply Finset.card_le_card
+  simp
 
 
-    -- simp
-  -- exact h1
-  -- sorry
-  -- sorry
--- sorry
+theorem mantels_theorem_scaled (htf: triangle_free G)
+: 4 * Finset.card (G.edgeSet.toFinset) ≤ (Fintype.card V)^2 := by
 
--- theorem mantels_theorem {htf: triangle_free G} : #G.edgeFinset ≤ ⌊ ( (Fintype.card V)^2 // 4) ⌋ := by sorry
+  let n:= Fintype.card V
+  let m := #G.edgeFinset
+  let deg_sum := ∑ v, G.degree v
+  let deg_sq_sum :=  ∑ v, (G.degree v)^2
+
+  change 4 * m ≤ n^2
+
+  have handshake : deg_sum = 2 * m := sum_degrees_eq_twice_card_edges G
+  have h1 : ∀ (x y : V), G.Adj x y → G.degree x + G.degree y ≤ n := bound_degree_sum G htf
+  have h2 : ∀ e : G.Dart, G.degree e.fst + G.degree e.snd ≤ n := by
+    intro e
+    exact h1 e.fst e.snd e.adj
+
+  have h_dart_card : Fintype.card G.Dart = 2 * m := dart_card_eq_twice_card_edges G
+
+  have h_cauchy : deg_sum^2 ≤ n * deg_sq_sum := by
+    have h_cauchy' : (∑v:V, 1* (G.degree v : ℤ ))^2 ≤ (∑v :V, (1 : ℤ)^2) * (∑v:V, (G.degree v : ℤ)^2) := by
+      apply Finset.sum_mul_sq_le_sq_mul_sq
+    simp [deg_sum,n] at h_cauchy' ⊢
+    exact_mod_cast h_cauchy'
+
+  let dart_sum := ∑ e:G.Dart, (G.degree e.fst + G.degree e.snd)
+
+  have h₂ : dart_sum ≤ n * Fintype.card G.Dart  := by
+    simp [ dart_sum ]
+    calc
+      _ ≤ ∑ e : G.Dart, n := by
+        apply Finset.sum_le_sum
+        intro e he
+        exact h2 e
+
+      _ = n * Fintype.card G.Dart := by
+        simp
+        linarith
+
+  have h₃ : dart_sum = 2 * deg_sq_sum := by
+    simp [dart_sum, deg_sq_sum]
+    rw [darts_count_p_1, darts_count_p_2]
+
+  simp [handshake] at h_cauchy
+  nlinarith [h_cauchy, h₂, h₃]
+
+theorem mantels_theorem {htf: triangle_free G}
+: Finset.card (G.edgeSet.toFinset) ≤  (Fintype.card V)^2 / 4 := by
+have := mantels_theorem_scaled G htf
+omega
