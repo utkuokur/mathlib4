@@ -22,19 +22,11 @@ lemma triangle_free_expand (htf: triangle_free G)
   have hxz' : x ≠ z := G.ne_of_adj  hxz
 
   have h : Nonempty (completeGraph (Fin 3) ↪g G) := by
-    let f: Fin 3 ↪ V :=  ⟨ λ i => match i with
-        | 0 => x | 1 => y | 2 => z, by
-          intro i j
-          fin_cases i <;> fin_cases j
-          <;> simp
-          <;> tauto
-      ⟩
-    use f
-    intro i j
-    simp
-    fin_cases i <;> fin_cases j
-    <;> simp
-    <;> tauto
+    refine ⟨{
+      toFun := λ i => match i with | 0 => x | 1 => y | 2 => z
+      inj' := by intro i j; fin_cases i <;> fin_cases j <;> simp <;> tauto
+      map_rel_iff' := by intro i j; fin_cases i <;> fin_cases j <;> simp <;> tauto
+    }⟩
   contradiction
 
 variable [Fintype V] [DecidableRel G.Adj]
@@ -42,7 +34,7 @@ variable [Fintype V] [DecidableRel G.Adj]
 lemma darts_count_p_1 : ∑ e:G.Dart, (G.degree e.fst + G.degree e.snd)
 = ∑ p : (Σ v, G.neighborFinset v), (G.degree p.1 + G.degree p.2) := by
   let equiv : G.Dart ≃ Σ v : V, G.neighborFinset v := {
-      toFun := λ d => ⟨d.fst, d.snd, by simp ⟩
+      toFun := λ d => ⟨ d.fst, d.snd, by simp ⟩
       invFun := λ p => ⟨ ⟨ p.fst, p.snd ⟩ , by
       have ⟨ _, d ⟩ := p.2
       simp [neighborFinset] at d ⊢
