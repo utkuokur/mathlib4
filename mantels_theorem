@@ -115,10 +115,9 @@ theorem mantels_theorem_scaled (htf: triangle_free G)
   change 4 * m ≤ n^2
 
   have handshake : deg_sum = 2 * m := sum_degrees_eq_twice_card_edges G
-  have h1 : ∀ (x y : V), G.Adj x y → G.degree x + G.degree y ≤ n := bound_degree_sum G htf
-  have h2 : ∀ e : G.Dart, G.degree e.fst + G.degree e.snd ≤ n := by
-    intro e
-    exact h1 e.fst e.snd e.adj
+  have h1 : ∀ e : G.Dart, G.degree e.fst + G.degree e.snd ≤ n :=
+    λ e => bound_degree_sum G htf e.fst e.snd e.adj
+
 
   have h_dart_card : Fintype.card G.Dart = 2 * m := dart_card_eq_twice_card_edges G
 
@@ -136,7 +135,7 @@ theorem mantels_theorem_scaled (htf: triangle_free G)
       _ ≤ ∑ e : G.Dart, n := by
         apply Finset.sum_le_sum
         intro e he
-        exact h2 e
+        exact h1 e
 
       _ = n * Fintype.card G.Dart := by
         simp
